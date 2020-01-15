@@ -44,11 +44,31 @@
     theme_classic()
   
   # Field Goals total rates 
-  ggplot(data_clean, aes(x=FGAttempts)) +
+  x <- seq(0, max(data_clean$FGScored), length.out=100)
+  y <- with(data_clean, dnorm(x, mean(FGScored), sd(FGScored)))
+  ggplot(data_clean, aes(x=FGScored)) +
     geom_histogram(aes(y=..density..), position="identity", alpha=0.5, bins = 30)+
     geom_density(alpha=0.6)+
+    lines(x, y, col = "red")+
     labs(x="y", y = "Density")+
     theme_classic()
+
+  
+ histogram(~ FGScored, data = data_clean,nint=25, type = "density",panel = function(x, ...) {
+    panel.histogram(x,alpha=0.6,col="grey",...)
+    panel.densityplot(x,col="black",...) 
+    xn <- seq(min(x), max(x))
+    yn <- dpois(xn, mean(x))
+    panel.lines(xn, yn, col = "red")
+    xn <- seq(min(x), max(x), length.out = 100)
+    yn <- dnorm(xn, mean(x), sd(x))
+    panel.lines(xn, yn, col = "blue")
+  })
+
+  hist(data_clean$FGScored, freq = FALSE)
+  x <- seq(0, 20, length.out=380)
+  y <- with(data_clean, dnorm(x, mean(FGScored), sd(FGScored)))
+  lines(x, y, col = "red")
   
   # Free throwns total rates 
   ggplot(data_clean, aes(x=FTPortion)) +

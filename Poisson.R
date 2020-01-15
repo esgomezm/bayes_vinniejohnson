@@ -44,6 +44,9 @@ x4 = s$Season.1988.1989
 #.......... STAN ...............................................................
 #...............................................................................
 
+#-----------------------------------------------------------------------------------------------------
+# Model evaluating season 1986-1987 and 1987-1988 with respect to seasons 1985-1986 and 1988-1989
+#-----------------------------------------------------------------------------------------------------
 
 poisson_stan <- "
 data{
@@ -60,17 +63,9 @@ parameters{
   real b2;
   real b3;
 }
-transformed parameters {
-  real<lower=0> loglambda;
-  real<lower=0> lambda;
-  for (i in 1:n) {          
-    loglambda = a + b1*x1[i] + b2*x2[i] + b3*x3[i];
-    lambda = exp(loglambda);
-  }
-}
 model{
 for (i in 1:n) {
-   y[i] ~ poisson(lambda);
+   y[i] ~ poisson(exp(a + b1*x1[i] + b2*x2[i] + b3*x3[i]));
   }
    a ~ normal(0.0, 1.0E3);
    b1 ~ normal(0.0, 1.0E3);
@@ -79,28 +74,33 @@ for (i in 1:n) {
 }
 "
 # Create the data object and call the stan program
+# Evaluate scored field goals
 model_data =  list(n = N, y = y,  x1 = x1, x2 = x2, x3 = x3) 
+
+# Evaluate goal attempts
+model_data =  list(n = N, y = x,  x1 = x1, x2 = x2, x3 = x3) 
+
 poisson_stan_model = stan(model_code=poisson_stan, data=model_data, iter=100000, chains=3)
 print(summary(poisson_stan_model)$summary, digits=5)
 
 
-# Chequeo de convergencias
+# Plot credible intervals and save the plot as a pdf
 pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/ci_poisson_season.pdf") 
 stan_plot(poisson_stan_model, pars=c("a", "b1", "b2", "b3"))
 dev.off() 
 
-# Open a pdf file
+# Plot chains convergence and save the plot as a pdf
 pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/convergence_poisson_season.pdf") 
 traceplot(poisson_stan_model, pars= c("a", "b1", "b2", "b3"), inc_warmup=TRUE) +
   coord_cartesian(xlim = c(0, 100000), ylim = c(-1, 3))
-# Close the pdf file
 dev.off() 
 
+# Plot chains distributions and save the plot as a pdf
 pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/density_poisson_season.pdf") 
 plot(poisson_stan_model, pars=c("a", "b1", "b2", "b3"), show_density=TRUE, ci_level=0.95, fill_color="blue")
 dev.off() 
 
-
+# Plot the densities of obtained values in different ways
 stan_dens(poisson_stan_model)
 
 (dens <- stan_dens(poisson_stan_model, fill = "skyblue", ))
@@ -113,11 +113,52 @@ dens_sep + scale_fill_manual(values = c("red", "blue", "green"))
 (dens_sep_stack <- stan_dens(poisson_stan_model, pars = c("a", "b1", "b2", "b3"), alpha = 0.5,
                              separate_chains = TRUE, position = "stack") + 
                             scale_fill_manual(values = c("orange", "yellow", "blue")))
-# Alternativa via Navegador
+
+# Use shinystan to get a nice navigator view of the model
 library(shinystan)
 launch_shinystan(poisson_stan_model)
 
+#-----------------------------------------------------------------------------------------------------
+# Model evaluating season 1986-1987 and 1987-1988 with respect to seasons 1985-1986 and 1988-1989
+#-----------------------------------------------------------------------------------------------------
 
+poisson_stan <- "
+data{
+  int<lower=1> n;
+  int<lower=0,upper=1> x2[n];
+  int<lower=0,upper=1> x3[n];
+  int<lower=0> y[n];
+}
+
+parameters{
+  real a;
+  real b2;
+  real b3;
+}
+model{
+for (i in 1:n) {
+   y[i] ~ poisson(exp(a + b2*x2[i] + b3*x3[i]));
+  }
+   a ~ normal(0.0, 1.0E3);
+   b2 ~ normal(0.0, 1.0E3);
+   b3 ~ normal(0.0, 1.0E3);
+}
+"
+# Create the data object and call the stan program
+model_data =  list(n = N, y = y,  x2 = x2, x3 = x3) 
+poisson_stan_model = stan(model_code=poisson_stan, data=model_data, iter=100000, chains=3)
+print(summary(poisson_stan_model)$summary, digits=5)
+
+# Plot credible intervals and save the plot as a pdf
+pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/ci_poisson_reduced_season.pdf") 
+stan_plot(poisson_stan_model, pars=c("a", "b2", "b3"))
+dev.off() 
+
+# Plot chains convergence and save the plot as a pdf
+pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/convergence_poisson_reduced_season.pdf") 
+traceplot(poisson_stan_model, pars= c("a", "b2", "b3"), inc_warmup=TRUE) +
+  coord_cartesian(xlim = c(0, 100000), ylim = c(-1, 3))
+dev.off() 
 
 #...............................................................................
 #.......... JAGS ...............................................................
@@ -139,13 +180,14 @@ for(i in 1:n)
 "
 # Create the data object and call the stan program
 model_data =  list(n = N, y = y,  x1 = x1, x2 = x2, x3 = x3) 
-parametros = c("a", "b1", "b2","b3")
+parametros = c("a", "b1", "b2","b3", "lambda")
 
 poisson_model = jags(data=model_data, inits=NULL, parameters.to.save=parametros, 
                           n.chains=3, n.iter=100000, working.directory=ruta, 
                           model.file=textConnection(poisson))
 
 poisson_model
+info_model = poisson_model[["BUGSoutput"]][["summary"]]
 
 poisson_model.mcmc = as.mcmc.list(poisson_model$BUGSoutput)
 pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/convergence_poison_season_jags.pdf", height=20, width=10) 
