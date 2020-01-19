@@ -184,7 +184,7 @@ parametros = c("p", "phi", "mu")
 
 beta_bin_jags_model = jags(data = model_data, inits=NULL, parameters.to.save = parametros, 
                                    n.chains=3, n.iter=100000, working.directory=ruta, 
-                                   model.file=textConnection(beta_bin_jags_seasons))
+                                   model.file=textConnection(beta_bin_jags))
 
 beta_bin_jags_model
 

@@ -116,3 +116,74 @@ dev.off()
 pdf("/home/esgomezm/Documents/INFERENCIA-BAYESIANA/vinnie_johnson/density_normal_reducedb0_season.pdf") 
 plot(normal_stan_model, pars=c("a","b0","b2", "sigma"), show_density=TRUE, ci_level=0.95, fill_color="blue")
 dev.off() 
+
+
+#...............................................................................
+#.......... JAGS ...............................................................
+#...............................................................................
+
+
+linear_dummies = '
+model
+{
+  # Likelihood
+  for (i in 1:n) {
+    mu[i] <- a + b0*x[i] + b1*x1[i] + b2*x2[i] + b3*x3[i] #
+    y[i] ~ dnorm(mu[i],tau)
+  }
+    
+  # Priors
+  a ~ dnorm(0,1.0E-3) # Independent value, probably mean value
+  b0 ~ dnorm(0, 1.0E-3) # Coefficient corresponding to each game season
+  b1 ~ dnorm(0, 1.0E-3) # Coefficient corresponding to each game season
+  b2 ~ dnorm(0, 1.0E-3) 
+  b3 ~ dnorm(0, 1.0E-3) 
+
+  # sigma ~ dt(0, 10^-2, 1)T(0,) # Variance of logit(field goal rate)
+  tau ~ dgamma(0.001,0.001);
+  # sigma ~ dunif(0, 1)
+	sigma2 <- 1/tau
+}
+'
+
+# Create the data object and call the stan program
+model_data =  list(n = N, y = y, x = x, x1 = x1, x2 = x2, x3 = x3) 
+parametros = c("a","b0", "b1", "b2","b3", "sigma2")
+
+linear_model = jags(data=model_data, inits=NULL, parameters.to.save=parametros, 
+                     n.chains=3, n.iter=100000, working.directory=ruta, 
+                     model.file=textConnection(linear_dummies))
+
+linear_model
+
+linear_dummies = '
+model
+{
+  # Likelihood
+  for (i in 1:n) {
+    mu[i] <- a + b0*x[i] + b2*x2[i] #
+    y[i] ~ dnorm(mu[i],tau)
+  }
+    
+  # Priors
+  a ~ dnorm(0,1.0E-3) # Independent value, probably mean value
+  b0 ~ dnorm(0, 1.0E-3) # Coefficient corresponding to each game season
+  b2 ~ dnorm(0, 1.0E-3) 
+
+  # sigma ~ dt(0, 10^-2, 1)T(0,) # Variance of logit(field goal rate)
+  tau ~ dgamma(0.001,0.001);
+  # sigma ~ dunif(0, 1)
+	sigma2 <- 1/tau
+}
+'
+
+
+# Create the data object and call the stan program
+model_data =  list(n = N, y = y, x = x, x1 = x1, x2 = x2, x3 = x3) 
+parametros = c("a","b0", "b2", "sigma2")
+
+linear_model = jags(data=model_data, inits=NULL, parameters.to.save=parametros, 
+                    n.chains=3, n.iter=100000, working.directory=ruta, 
+                    model.file=textConnection(linear_dummies))
+
+linear_model
