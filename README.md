@@ -1,4 +1,4 @@
-# Analisis of Vinnie Johnsons data using Bayesian inference
+# Vinnie Johnsons data analysis using Bayesian inference
 
 The code in this repository analyses whether the basketball player Vincent ”Vinnie” Johnson improved his hits between 1985 and 1988, while he was playing for the Detroit Pistons. 
 
